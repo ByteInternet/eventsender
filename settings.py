@@ -1,0 +1,5 @@
+import os
+
+EVENT_QUEUE_URL = os.environ.get('EVENT_QUEUE_URL')
+EVENT_QUEUE_EXCHANGE = os.environ.get('EVENT_QUEUE_EXCHANGE')
+EVENT_QUEUE_ROUTING_KEY = os.environ.get('EVENT_QUEUE_ROUTING_KEY', '')
