@@ -34,7 +34,7 @@ def send_event(event):
         chan = conn.channel()
         chan.basic_publish(
             exchange=settings.EVENT_QUEUE_EXCHANGE,
-            routing_key=settings.EVENT_QUEUE_ROUTING_KEY,
+            routing_key=getattr(settings, 'EVENT_QUEUE_ROUTING_KEY', ''),
             body=json.dumps(event),
             properties=pika.BasicProperties(delivery_mode=2, content_type='application/json')
         )
