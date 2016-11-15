@@ -4,7 +4,7 @@ import datetime
 from contextlib import closing
 
 try:
-    # django is not a dependency, but let's allow for easy integrating with Django projects
+    # Django is not a dependency, but let's allow for simple integration with Django projects
     from django.conf import settings
 except ImportError:
     import settings
