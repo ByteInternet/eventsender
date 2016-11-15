@@ -1,6 +1,6 @@
-===================
+===========
 eventsender
-===================
+===========
 This is a simple event sender that publishes JSON-serialisable messages to an AMQP server exchange. It can also be optionally installed as a Django application.
 
 
