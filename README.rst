@@ -9,6 +9,8 @@ Installation and configuration
 
 The following settings should be supplied either as environment variables or via Django settings module:
 
+.. code-block:: python
+
     EVENT_QUEUE_URL = os.environ.get('EVENT_QUEUE_URL')
     EVENT_QUEUE_EXCHANGE = os.environ.get('EVENT_QUEUE_EXCHANGE')
     EVENT_QUEUE_ROUTING_KEY = os.environ.get('EVENT_QUEUE_ROUTING_KEY', '')
@@ -25,7 +27,9 @@ Example:
 
 Or
 
-    EVENT_QUEUE_EXCHANGE=some_exchange EVENT_QUEUE_URL=amqp://guest:guest@localhost:5672/host python -c \
+.. code-block:: bash
+
+   EVENT_QUEUE_EXCHANGE=some_exchange EVENT_QUEUE_URL=amqp://guest:guest@localhost:5672/host python -c \
         "import eventsender; eventsender.send_event({'type': 'event_type', 'somedata': {'key': 'value'}})"
 
 
