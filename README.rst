@@ -35,7 +35,7 @@ Or
 
 Running tests
 -------------
-Just run `nosetests` to run tests against your current setup.
+Just run ``nosetests`` to run tests against your current setup.
 
 
 =====
