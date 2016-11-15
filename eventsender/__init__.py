@@ -1,5 +1,6 @@
 import json
 import pika
+import datetime
 from contextlib import closing
 
 try:
@@ -27,6 +28,7 @@ def send_event(event):
     if not settings.EVENT_QUEUE_EXCHANGE:
         raise ImproperlyConfigured('EVENT_QUEUE_EXCHANGE is not configured in settings')
 
+    event.update({'timestamp': datetime.datetime.now().isoformat()})
     params = pika.URLParameters(settings.EVENT_QUEUE_URL)
     params.connection_attempts = CONNECTION_ATTEMPTS
     params.socket_timeout = CONNECTION_TIMEOUT
