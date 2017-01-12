@@ -1,36 +1,48 @@
+import datetime
+
+import pika
 import eventsender
-import unittest
-import mock
 import json
 
+from tests.unit import SenderTestCase
 
-class TestEventSender(unittest.TestCase):
+
+class TestEventSender(SenderTestCase):
     def setUp(self):
-        self.data = {'data': {'some_data': [1, 2, 3], 'type': 'some_event'}}
-        _event = self.data.copy()
-        _event.update({'timestamp': "2016-11-15T14:04:02.941878"})
-        self.data_json = json.dumps(_event)
+        self.set_up_settings()
 
-    @mock.patch('eventsender.datetime.datetime')
-    @mock.patch('eventsender.settings', EVENT_QUEUE_URL='url', EVENT_QUEUE_EXCHANGE='exchange',
-                EVENT_QUEUE_ROUTING_KEY='key')
-    @mock.patch('eventsender.pika')
-    def test_send_event(self, mock_pika, mock_settings, mock_now):
-        _mock_channel = mock_pika.BlockingConnection.return_value.channel.return_value
-        _mock_publish = mock.MagicMock()
-        _mock_channel.basic_publish = _mock_publish
-        mock_now.now.return_value.isoformat.return_value = "2016-11-15T14:04:02.941878"
-        eventsender.send_event(self.data)
-        _mock_publish.assert_called_once_with(
-            exchange='exchange', routing_key='key', body=self.data_json,
-            properties=mock_pika.BasicProperties(delivery_mode=2, content_type='application/json'))
+        # mock datetime, so we can match the date
+        self.now = datetime.datetime.now(tz=eventsender.utc)
+        self.mock_datetime = self.set_up_patch('datetime.datetime')
+        self.mock_datetime.now.return_value = self.now
 
-    @mock.patch('eventsender.settings', EVENT_QUEUE_EXCHANGE='exchange')
-    @mock.patch('eventsender.pika')
-    def test_raise_url_improperly_configured(self, mock_pika, mock_settings):
-        self.assertRaises(eventsender.send_event(self.data))
+        # mock channels
+        self.mock_open_channel = self.set_up_patch('eventsender.open_channel')
+        self.mock_channel = self.mock_open_channel().__enter__()
 
-    @mock.patch('eventsender.settings', EVENT_QUEUE_URL='url')
-    @mock.patch('eventsender.pika')
-    def test_raise_exchange_improperly_condigured(self, mock_pika, mock_settings):
-        self.assertRaises(eventsender.send_event(self.data))
+        # mock BasicProperties, because they do not compare well with identical properties
+        self.mock_basic_properties = self.set_up_patch('pika.BasicProperties', side_effect=lambda **params: params)
+
+    def test_sends_event(self):
+        data = {'data': {'some_data': [1, 2, 3], 'type': 'some_event'}}
+        expected_post_data = dict(data, timestamp=self.now.isoformat())
+
+        eventsender.send_event(data)
+        self.mock_channel.basic_publish.assert_called_once_with(
+            exchange='exchange',
+            routing_key='key',
+            body=json.dumps(expected_post_data),
+            properties=pika.BasicProperties(delivery_mode=2, content_type='application/json'))
+
+    def test_utc_timezone_is_correctly_offset(self):
+        self.assertTrue(self.now.isoformat().endswith("+00:00") or self.now.isoformat().endswith("Z"))
+
+    def test_send_event_sends_utc_timestamp(self):
+        eventsender.send_event({})
+        self.mock_datetime.now.assert_called_once_with(tz=eventsender.utc)
+
+    def test_raise_url_improperly_configured(self):
+        self.assertRaises(eventsender.send_event({}))
+
+    def test_raise_exchange_improperly_condigured(self):
+        self.assertRaises(eventsender.send_event({}))
