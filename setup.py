@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='eventsender',
-    version='0.0.1',
+    version='1.0',
     packages=find_packages(exclude=['tests*']),
     url='https://github.com/ByteInternet/eventsender',
     author='Byte B.V.',
