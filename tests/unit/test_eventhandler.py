@@ -4,6 +4,8 @@ import pika
 import eventsender
 import json
 
+from eventsender import Settings, ImproperlyConfigured
+
 from tests.unit import SenderTestCase
 
 
@@ -42,7 +44,13 @@ class TestEventSender(SenderTestCase):
         self.mock_datetime.now.assert_called_once_with(tz=eventsender.utc)
 
     def test_raise_url_improperly_configured(self):
-        self.assertRaises(eventsender.send_event({}))
+        mock_settings = Settings(None, 'exchange', 'key')
+        self.set_up_patch('eventsender.get_settings', return_value=mock_settings)
+        with self.assertRaises(ImproperlyConfigured):
+            eventsender.send_event({})
 
-    def test_raise_exchange_improperly_condigured(self):
-        self.assertRaises(eventsender.send_event({}))
+    def test_raise_exchange_improperly_configured(self):
+        mock_settings = Settings('amqp://host/url', None, 'key')
+        self.set_up_patch('eventsender.get_settings', return_value=mock_settings)
+        with self.assertRaises(ImproperlyConfigured):
+            eventsender.send_event({})
