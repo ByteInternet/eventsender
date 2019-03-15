@@ -21,5 +21,5 @@ setup(
     ],
     keywords='amqp rabbitmq events eventsender',
     description='RabbitMQ event sender',
-    install_requires=['pika==0.10.0'],
+    install_requires=['pika==0.13.0'],
 )
