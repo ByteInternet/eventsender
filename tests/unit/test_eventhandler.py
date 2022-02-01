@@ -54,3 +54,30 @@ class TestEventSender(SenderTestCase):
         self.set_up_patch('eventsender.get_settings', return_value=mock_settings)
         with self.assertRaises(ImproperlyConfigured):
             eventsender.send_event({})
+
+    def test_does_not_raise_exchange_improperly_configured_if_no_setting_but_param_provided(self):
+        mock_settings = Settings('amqp://host/url', None, 'key')
+        self.set_up_patch('eventsender.get_settings', return_value=mock_settings)
+
+        eventsender.send_event({}, "my_exchange")
+
+    def test_send_event_uses_provided_exchange_parameter(self):
+        eventsender.send_event({}, "my_exchange")
+
+        self.mock_channel.basic_publish.assert_called_once_with(
+            exchange='my_exchange',
+            routing_key='key',
+            body=json.dumps(dict({}, timestamp=self.now.isoformat())),
+            properties=pika.BasicProperties(delivery_mode=2, content_type='application/json'))
+
+    def test_send_event_exchange_parameter_takes_precedence_over_exchange_setting(self):
+        mock_settings = Settings('amqp://host/url', "other_exchange", 'key')
+        self.set_up_patch('eventsender.get_settings', return_value=mock_settings)
+
+        eventsender.send_event({}, "my_exchange")
+
+        self.mock_channel.basic_publish.assert_called_once_with(
+            exchange='my_exchange',
+            routing_key='key',
+            body=json.dumps(dict({}, timestamp=self.now.isoformat())),
+            properties=pika.BasicProperties(delivery_mode=2, content_type='application/json'))
