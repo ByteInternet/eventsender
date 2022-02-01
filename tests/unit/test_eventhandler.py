@@ -1,4 +1,5 @@
 import datetime
+from unittest.mock import Mock
 
 import pika
 import eventsender
@@ -79,5 +80,37 @@ class TestEventSender(SenderTestCase):
         self.mock_channel.basic_publish.assert_called_once_with(
             exchange='my_exchange',
             routing_key='key',
+            body=json.dumps(dict({}, timestamp=self.now.isoformat())),
+            properties=pika.BasicProperties(delivery_mode=2, content_type='application/json'))
+
+    def test_send_event_routing_key_takes_precendence_over_exchange_setting(self):
+        mock_settings = Settings('amqp://host/url', "exchange", 'key')
+        self.set_up_patch('eventsender.get_settings', return_value=mock_settings)
+
+        eventsender.send_event({}, routing_key="my_key")
+
+        self.mock_channel.basic_publish.assert_called_once_with(
+            exchange='exchange',
+            routing_key='my_key',
+            body=json.dumps(dict({}, timestamp=self.now.isoformat())),
+            properties=pika.BasicProperties(delivery_mode=2, content_type='application/json'))
+
+    def test_uses_blank_routing_key_if_no_setting_and_no_parameter_provided(self):
+        class NoKeySettings:
+            EVENT_QUEUE_URL = None
+            EVENT_QUEUE_EXCHANGE = None
+
+            def __init__(self, event_queue_url, event_queue_exchange):
+                self.EVENT_QUEUE_URL= event_queue_url
+                self.EVENT_QUEUE_EXCHANGE= event_queue_exchange
+
+        mock_settings = NoKeySettings('amqp://host/url', "exchange")
+        self.set_up_patch('eventsender.get_settings', return_value=mock_settings)
+
+        eventsender.send_event({})
+
+        self.mock_channel.basic_publish.assert_called_once_with(
+            exchange='exchange',
+            routing_key='',
             body=json.dumps(dict({}, timestamp=self.now.isoformat())),
             properties=pika.BasicProperties(delivery_mode=2, content_type='application/json'))

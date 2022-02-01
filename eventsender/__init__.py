@@ -55,14 +55,17 @@ class UTC(datetime.tzinfo):
 utc = UTC()
 
 
-def send_event(event, exchange=None):
+def send_event(event, exchange=None, routing_key=None):
     """
     Add a timestamp to the event data and send it to a message queue
     :param dict event: JSON-serialisable dictionary
     :param str exchange: Exchange to use. If not set will default to EVENT_QUEUE_EXCHANGE setting.
+    :param str routing_key: Routing key to use. If not set will default to EVENT_QUEUE_EXCHANGE setting.
+    If this is not set, use blank by default.
     """
     settings = get_settings()
     exchange = exchange or settings.EVENT_QUEUE_EXCHANGE
+    routing_key = routing_key or getattr(settings, 'EVENT_QUEUE_ROUTING_KEY', '')
 
     if not settings.EVENT_QUEUE_URL:
         raise ImproperlyConfigured('EVENT_QUEUE_URL is not configured in settings')
@@ -74,7 +77,7 @@ def send_event(event, exchange=None):
     with open_channel(settings.EVENT_QUEUE_URL) as channel:
         channel.basic_publish(
             exchange=exchange,
-            routing_key=getattr(settings, 'EVENT_QUEUE_ROUTING_KEY', ''),
+            routing_key=routing_key,
             body=json.dumps(event),
             properties=pika.BasicProperties(delivery_mode=2, content_type='application/json')
         )
