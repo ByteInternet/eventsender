@@ -11,7 +11,7 @@ def readfile(filename):
 
 setup(
     name='eventsender',
-    version='1.1.2',
+    version='1.1.3',
     packages=find_packages(exclude=['tests*']),
     url='https://github.com/ByteInternet/eventsender',
     author='Byte B.V.',
