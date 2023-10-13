@@ -36,5 +36,5 @@ setup(
     description='RabbitMQ event sender',
     long_description=readfile('README.rst'),
     long_description_content_type='text/x-rst',
-    install_requires=['pika==1.1.1'],
+    install_requires=['pika==1.3.2'],
 )
