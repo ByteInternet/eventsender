@@ -35,9 +35,19 @@ Or
         "import eventsender; eventsender.send_event({'type': 'event_type', 'somedata': {'key': 'value'}})"
 
 
+Tracing
+-------
+``send_event`` creates an OpenTelemetry producer span for every publish and injects the
+current trace context into the AMQP message headers, so consumers can continue the trace.
+This only depends on ``opentelemetry-api``, for applications without a configured
+OpenTelemetry backend all tracing calls are no-ops and the behaviour is unchanged. To get the
+spans into your tracing backend, configure an OpenTelemetry SDK in your application (for
+example by enabling the Sentry SDK's OpenTelemetry support).
+
+
 Running tests
 -------------
-Just run ``nosetests`` to run tests against your current setup.
+Install `uv <https://docs.astral.sh/uv/>`_ and run ``uv run pytest tests``.
 
 
 =====

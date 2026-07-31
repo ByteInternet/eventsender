@@ -1,4 +1,4 @@
-from mock import patch
+from unittest.mock import patch
 
 from eventsender import get_settings
 from tests.unit import SenderTestCase

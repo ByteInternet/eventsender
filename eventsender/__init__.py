@@ -6,9 +6,13 @@ import pika
 import datetime
 from contextlib import closing, contextmanager
 
+from opentelemetry import propagate, trace
+
 
 CONNECTION_ATTEMPTS = 3
 CONNECTION_TIMEOUT = 1.0
+
+tracer = trace.get_tracer('eventsender')
 
 
 class ImproperlyConfigured(ImportError):
@@ -74,10 +78,21 @@ def send_event(event, exchange=None, routing_key=None):
                                    'and no exchange provided in parameters.')
 
     event.update({'timestamp': datetime.datetime.now(tz=utc).isoformat()})
-    with open_channel(settings.EVENT_QUEUE_URL) as channel:
-        channel.basic_publish(
-            exchange=exchange,
-            routing_key=routing_key,
-            body=json.dumps(event),
-            properties=pika.BasicProperties(delivery_mode=2, content_type='application/json')
-        )
+    with tracer.start_as_current_span('publish {}'.format(exchange), kind=trace.SpanKind.PRODUCER) as span:
+        span.set_attribute('messaging.system', 'rabbitmq')
+        span.set_attribute('messaging.operation.name', 'publish')
+        span.set_attribute('messaging.operation.type', 'send')
+        span.set_attribute('messaging.destination.name', exchange)
+        if routing_key:
+            span.set_attribute('messaging.rabbitmq.destination.routing_key', routing_key)
+        if event.get('type'):
+            span.set_attribute('event.type', str(event['type']))
+        headers = {}
+        propagate.inject(headers)
+        with open_channel(settings.EVENT_QUEUE_URL) as channel:
+            channel.basic_publish(
+                exchange=exchange,
+                routing_key=routing_key,
+                body=json.dumps(event),
+                properties=pika.BasicProperties(delivery_mode=2, content_type='application/json', headers=headers)
+            )
