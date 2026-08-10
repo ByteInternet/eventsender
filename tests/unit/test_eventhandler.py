@@ -35,7 +35,7 @@ class TestEventSender(SenderTestCase):
             exchange='exchange',
             routing_key='key',
             body=json.dumps(expected_post_data),
-            properties=pika.BasicProperties(delivery_mode=2, content_type='application/json'))
+            properties=pika.BasicProperties(delivery_mode=2, content_type='application/json', headers={}))
 
     def test_utc_timezone_is_correctly_offset(self):
         self.assertTrue(self.now.isoformat().endswith("+00:00") or self.now.isoformat().endswith("Z"))
@@ -69,7 +69,7 @@ class TestEventSender(SenderTestCase):
             exchange='my_exchange',
             routing_key='key',
             body=json.dumps(dict({}, timestamp=self.now.isoformat())),
-            properties=pika.BasicProperties(delivery_mode=2, content_type='application/json'))
+            properties=pika.BasicProperties(delivery_mode=2, content_type='application/json', headers={}))
 
     def test_send_event_exchange_parameter_takes_precedence_over_exchange_setting(self):
         mock_settings = Settings('amqp://host/url', "other_exchange", 'key')
@@ -81,7 +81,7 @@ class TestEventSender(SenderTestCase):
             exchange='my_exchange',
             routing_key='key',
             body=json.dumps(dict({}, timestamp=self.now.isoformat())),
-            properties=pika.BasicProperties(delivery_mode=2, content_type='application/json'))
+            properties=pika.BasicProperties(delivery_mode=2, content_type='application/json', headers={}))
 
     def test_send_event_routing_key_takes_precendence_over_exchange_setting(self):
         mock_settings = Settings('amqp://host/url', "exchange", 'key')
@@ -93,7 +93,7 @@ class TestEventSender(SenderTestCase):
             exchange='exchange',
             routing_key='my_key',
             body=json.dumps(dict({}, timestamp=self.now.isoformat())),
-            properties=pika.BasicProperties(delivery_mode=2, content_type='application/json'))
+            properties=pika.BasicProperties(delivery_mode=2, content_type='application/json', headers={}))
 
     def test_uses_blank_routing_key_if_no_setting_and_no_parameter_provided(self):
         class NoKeySettings:
@@ -113,4 +113,4 @@ class TestEventSender(SenderTestCase):
             exchange='exchange',
             routing_key='',
             body=json.dumps(dict({}, timestamp=self.now.isoformat())),
-            properties=pika.BasicProperties(delivery_mode=2, content_type='application/json'))
+            properties=pika.BasicProperties(delivery_mode=2, content_type='application/json', headers={}))
