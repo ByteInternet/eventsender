@@ -114,3 +114,89 @@ class TestEventSender(SenderTestCase):
             routing_key='',
             body=json.dumps(dict({}, timestamp=self.now.isoformat())),
             properties=pika.BasicProperties(delivery_mode=2, content_type='application/json', headers={}))
+
+
+class TestSendEvents(SenderTestCase):
+    def setUp(self):
+        self.set_up_settings()
+
+        # mock datetime, so we can match the date
+        self.now = datetime.datetime.now(tz=eventsender.utc)
+        self.mock_datetime = self.set_up_patch('datetime.datetime')
+        self.mock_datetime.now.return_value = self.now
+
+        # mock channels
+        self.mock_open_channel = self.set_up_patch('eventsender.open_channel')
+        self.mock_channel = self.mock_open_channel().__enter__()
+        self.mock_open_channel.reset_mock()
+
+        # mock BasicProperties, because they do not compare well with identical properties
+        self.mock_basic_properties = self.set_up_patch('pika.BasicProperties', side_effect=lambda **params: params)
+
+    def published_bodies(self):
+        return [kwargs['body'] for _, kwargs in self.mock_channel.basic_publish.call_args_list]
+
+    def test_opens_one_connection_for_all_events(self):
+        eventsender.send_events([{'type': 'one'}, {'type': 'two'}, {'type': 'three'}])
+
+        self.mock_open_channel.assert_called_once_with('amqp://host/url')
+
+    def test_publishes_every_event(self):
+        eventsender.send_events([{'type': 'one'}, {'type': 'two'}])
+
+        self.assertEqual(
+            self.published_bodies(),
+            [
+                json.dumps({'type': 'one', 'timestamp': self.now.isoformat()}),
+                json.dumps({'type': 'two', 'timestamp': self.now.isoformat()}),
+            ])
+
+    def test_publishes_every_event_to_the_configured_destination(self):
+        eventsender.send_events([{'type': 'one'}, {'type': 'two'}])
+
+        for _, kwargs in self.mock_channel.basic_publish.call_args_list:
+            self.assertEqual(kwargs['exchange'], 'exchange')
+            self.assertEqual(kwargs['routing_key'], 'key')
+            self.assertEqual(
+                kwargs['properties'],
+                pika.BasicProperties(delivery_mode=2, content_type='application/json', headers={}))
+
+    def test_uses_provided_exchange_and_routing_key(self):
+        eventsender.send_events([{'type': 'one'}], 'my_exchange', 'my_key')
+
+        _, kwargs = self.mock_channel.basic_publish.call_args
+        self.assertEqual(kwargs['exchange'], 'my_exchange')
+        self.assertEqual(kwargs['routing_key'], 'my_key')
+
+    def test_accepts_any_iterable_of_events(self):
+        eventsender.send_events(event for event in [{'type': 'one'}, {'type': 'two'}])
+
+        self.assertEqual(self.mock_channel.basic_publish.call_count, 2)
+
+    def test_does_not_open_a_connection_without_events(self):
+        eventsender.send_events([])
+
+        self.mock_open_channel.assert_not_called()
+        self.mock_channel.basic_publish.assert_not_called()
+
+    def test_raises_url_improperly_configured_even_without_events(self):
+        mock_settings = Settings(None, 'exchange', 'key')
+        self.set_up_patch('eventsender.get_settings', return_value=mock_settings)
+
+        with self.assertRaises(ImproperlyConfigured):
+            eventsender.send_events([])
+
+    def test_raises_exchange_improperly_configured(self):
+        mock_settings = Settings('amqp://host/url', None, 'key')
+        self.set_up_patch('eventsender.get_settings', return_value=mock_settings)
+
+        with self.assertRaises(ImproperlyConfigured):
+            eventsender.send_events([{'type': 'one'}])
+
+    def test_send_event_publishes_through_send_events(self):
+        eventsender.send_event({'type': 'one'})
+
+        self.mock_open_channel.assert_called_once_with('amqp://host/url')
+        self.assertEqual(
+            self.published_bodies(),
+            [json.dumps({'type': 'one', 'timestamp': self.now.isoformat()})])
