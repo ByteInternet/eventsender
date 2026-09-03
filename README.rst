@@ -34,10 +34,21 @@ Or
    EVENT_QUEUE_EXCHANGE=some_exchange EVENT_QUEUE_URL=amqp://guest:guest@localhost:5672/host python -c \
         "import eventsender; eventsender.send_event({'type': 'event_type', 'somedata': {'key': 'value'}})"
 
+To publish a batch, use ``send_events``. It sends the same messages as calling
+``send_event`` for each of them, but over a single connection instead of one per event:
+
+.. code-block:: python
+
+    from eventsender import send_events
+    send_events([
+        {'type': 'user.subscribed', 'username': 'john_doe'},
+        {'type': 'user.subscribed', 'username': 'jane_doe'},
+    ])
+
 
 Tracing
 -------
-``send_event`` creates an OpenTelemetry producer span for every publish and injects the
+``send_event`` and ``send_events`` create an OpenTelemetry producer span per event and inject the
 current trace context into the AMQP message headers, so consumers can continue the trace.
 This only depends on ``opentelemetry-api``, for applications without a configured
 OpenTelemetry backend all tracing calls are no-ops and the behaviour is unchanged. To get the

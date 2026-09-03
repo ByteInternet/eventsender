@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-09-02
+
+### Added
+- `send_events` to publish a batch of events over a single connection. Opening a connection costs a TCP and an AMQP handshake, so publishing hundreds of events one at a time spends most of its time connecting
+- Tests covering the single connection, the per event messages and the per event tracing spans of `send_events`
+
+### Changed
+- `send_event` publishes through `send_events`, so there is one publish path. The messages it sends are unchanged
+- The producer span of a publish no longer covers opening the connection, only the publish itself
+
 ## [1.3.0] - 2026-07-30
 
 ### Added
